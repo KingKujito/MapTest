@@ -1,0 +1,39 @@
+@maingeo("Browser GeoLocation") {
+  <h1>Browser GeoLocation</h1>
+  <p>A brief demo for browser geolocation.</p>
+  <ol>
+    <li>Approve the location access request in the pop up window or the (i) within the left side of your url bar</li>
+    <li>View the console for location information</li>
+  </ol>
+  <script>
+    const geoFindMe = () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(success, error, geoOptions);
+      } else {
+        console.log("Geolocation services are not supported by your web browser.");
+      }
+    }
+
+    const success = (position) => {
+      const latitude = position.coords.latitude;
+      const longitude = position.coords.longitude;
+      const altitude = position.coords.altitude;
+      const accuracy = position.coords.accuracy;
+      console.log(`latitude: ${latitude}`);
+      console.log(`longitude: ${longitude}`);
+      console.log(`altitude: ${altitude}`);
+      console.log(`accuracy: ${accuracy}`);
+      console.log(`(lat, long): (${latitude}, ${longitude})`);
+    }
+
+    const error = (error) => {
+      console.log(`Unable to retrieve your location due to ${error.code}: ${error.message}`);
+    }
+
+    const geoOptions = {
+      enableHighAccuracy: true,
+      maximumAge: 30000,
+      timeout: 27000
+    };
+  </script>
+}

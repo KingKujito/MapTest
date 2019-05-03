@@ -12,7 +12,7 @@ import static play.mvc.Http.Status.OK;
 import static play.test.Helpers.GET;
 import static play.test.Helpers.route;
 
-public class HomeControllerTest extends WithApplication {
+public class BrowserGeoControllerTest extends WithApplication {
 
     @Override
     protected Application provideApplication() {
