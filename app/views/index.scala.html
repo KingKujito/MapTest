@@ -1,0 +1,25 @@
+@import scala.collection.immutable
+
+@(lastLat : Float = 0, lastLon : Float = 0, lastZoom : Float = 1, myLocation: Option[String], points : immutable.List[String] = immutable.List.empty)
+
+@main("MapTest") {
+  <h1>Test the map!</h1>
+  @maptest(lastLat,lastLon,lastZoom, myLocation, points)
+
+  <div>
+    <form action="#" method="GET">
+      <p>Search by address/location</p>
+      <input name="address" placeholder="Golfstreet 777, USA" required>
+      <p>Max distance in kilometers</p>
+      <input name="radius"  type="number" value="15" required><br><br>
+      <input name="submit"  type="submit" value="Search">
+    </form>
+    <hr>
+    <form action="#" method="GET">
+      <p>Search by your current location</p>
+      <input name="allow-geolocation" type="checkbox"  required>
+      <input name="submit"  type="submit" value="Search">
+    </form>
+  </div>
+
+}

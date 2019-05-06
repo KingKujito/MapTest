@@ -1,0 +1,40 @@
+@import scala.collection.immutable
+
+@(lastLat : Float = 0, lastLon : Float = 0, lastZoom : Float = 1, myLocation: Option[String], points : immutable.List[String] = immutable.List.empty)
+
+<div id="map"></div>
+<p class="map-foot">
+  <a href="https://www.maptiler.com/copyright/" target="_blank">© MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">© OpenStreetMap contributors</a>
+</p>
+
+<script>
+    var geojsonObject = {
+                    'type': 'FeatureCollection',
+                    'crs': {
+                                     'type': 'name',
+                                     'properties': {
+                                       'name': 'EPSG:3857'
+                                     }
+                                   },
+                    'features': [
+                      @Html(points.mkString(","))
+                    ]
+                  };
+
+     var geojsonObject2 = {
+                    'type': 'FeatureCollection',
+                    'crs': {
+                                     'type': 'name',
+                                     'properties': {
+                                       'name': 'EPSG:3857'
+                                     }
+                                   },
+                    'features': [
+                      @Html(myLocation.getOrElse(""))
+                    ]
+                  };
+  </script>
+<script src="/assets/javascripts/main.js"></script>
+<script>
+  makeMap(@lastLon, @lastLat, @lastZoom)
+</script>

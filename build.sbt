@@ -7,4 +7,9 @@ lazy val root = (project in file(".")).enablePlugins(PlayJava)
 
 scalaVersion := "2.12.8"
 
-libraryDependencies += guice
+libraryDependencies ++= Seq(
+  "org.me" % "doobietestproject_2.12" % "0.1",
+  "com.opencagedata" %% "scala-opencage-geocoder" % "1.1.1",
+  "org.osgeo" % "proj4j" % "0.1.0",
+  guice
+)

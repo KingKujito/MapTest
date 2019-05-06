@@ -3,7 +3,8 @@
 # ~~~~
 
 # An example controller showing a sample home page
-GET     /                           controllers.BrowserGeoController.index
+GET     /geo                        controllers.BrowserGeoController.index
+GET     /                           controllers.HomeController.index(lat: Float ?= 0, lon: Float ?= 0, zoom: Float ?= 0, radius: Float ?= 100, address: Option[String])
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
