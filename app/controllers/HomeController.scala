@@ -16,9 +16,11 @@ import scala.util.Try
 
 class HomeController @Inject()(cc: ControllerComponents) extends AbstractController(cc) {
 
-  implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
-
+  //needed to make calls to the OpenCageData API
   val client = new OpenCageClient("34707abc85774678ac21cf68ecbc193e")
+
+  //needed by Doobie
+  implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
 
   // A transactor that gets connections from java.sql.DriverManager and excutes blocking operations
   // on an unbounded pool of daemon threads. See the chapter on connection handling for more info.
@@ -29,35 +31,34 @@ class HomeController @Inject()(cc: ControllerComponents) extends AbstractControl
     "lunatech"                       // password
   )
 
-  def index(lat: Float = 0, lon: Float = 0, zoom: Float = 0, radius: Float = 100, address : Option[String] = None) = Action {
+  def index(lat: Float = 0, lon: Float = 0, zoom: Float = 0, radius: Float = 100, limit: Int = 50,
+            address : Option[String] = None, geoLat : Option[Float], geoLon: Option[Float]) = Action {
 
-    println("\n\n")
-
+    //Either a geolocation, location retrieved based on address, or no location
     val myPoint =
-    if (address.isDefined) {
-      println(address.get)
-      Try {
-        val responseFuture = client.forwardGeocode(address.get)
-        val response = Await.result(responseFuture, 5.seconds)
-        println(response.results)
+      //case where geolocation has been specified
+      if(geoLat.isDefined && geoLon.isDefined)
+        Some((geoLat.get, geoLon.get))
 
-        val latlon = response.results.head.geometry.get
-        println(latlon.lat, latlon.lng)
+      //case where address has been defined
+      else if (address.isDefined)
+        Try {
+          val responseFuture  = client.forwardGeocode(address.get)
+          val response        = Await.result(responseFuture, 5.seconds)
+          val latlon          = response.results.head.geometry.get
 
-        (latlon.lat, latlon.lng)
-      }.toOption
-    } else None
+          (latlon.lat, latlon.lng)
+        }.toOption
 
-    val locations = /*List(
-      pointToJson((51.9136881f,4.4806825f)),
-      pointToJson((0,0)),
-      pointToJson((0,40)),
-      pointToJson((40,40)),
-      pointToJson((80,80))
-    )*/
+      //case where no location has been defined
+      else None
+
+
+    //get locations near the specified position else display random facilities
+    val locations =
       if(myPoint.isDefined) {
         val facilitiesNearby =
-          util.getFacilsWithinRadius(myPoint.get._2, myPoint.get._1, radius.toInt, limit = 50)
+          util.getFacilsWithinRadius(myPoint.get._2, myPoint.get._1, radius.toInt, limit)
             .map(f =>
               f.facility
             )
@@ -65,11 +66,11 @@ class HomeController @Inject()(cc: ControllerComponents) extends AbstractControl
         facilitiesNearby.map(fac => pointToJson((fac.latitude.toFloat, fac.longitude.toFloat)))
       }
       else
-        Facility.getAll(Some(50)).query[Facility].to[List].transact(xa).unsafeRunSync.map(
+        Facility.getAll(Some(limit)).query[Facility].to[List].transact(xa).unsafeRunSync.map(
           fac => pointToJson((fac.latitude.toFloat, fac.longitude.toFloat))
         )
 
-
+    //geojson representation of the specified position
     val myLocation = myPoint.map(p => pointToJson((p._1,p._2)))
 
     Ok(views.html.index(

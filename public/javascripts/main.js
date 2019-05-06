@@ -85,7 +85,7 @@ function makeMap(lastLat, lastLong, lastZoom) {
         layers: [vector, vectorLayer, vectorLayer2],
         target: 'map',
         view: new ol.View({
-          center: [lastLat, lastLong],
+          center: ol.proj.transform([lastLat, lastLong], 'EPSG:4326', 'EPSG:3857'),
           zoom: lastZoom
         })
       });

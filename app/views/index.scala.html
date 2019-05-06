@@ -7,6 +7,7 @@
   @maptest(lastLat,lastLon,lastZoom, myLocation, points)
 
   <div>
+      <script src="/assets/javascripts/geolocation.js"></script>
     <form action="#" method="GET">
       <p>Search by address/location</p>
       <input name="address" placeholder="Golfstreet 777, USA" required>
@@ -15,11 +16,24 @@
       <input name="submit"  type="submit" value="Search">
     </form>
     <hr>
-    <form action="#" method="GET">
-      <p>Search by your current location</p>
-      <input name="allow-geolocation" type="checkbox"  required>
-      <input name="submit"  type="submit" value="Search">
-    </form>
+      <div id="allow-geo">
+          <p>Allow us to search for facilities near you.</p>
+          <button onclick="geoFindMe();" type="button">Allow</button>
+      </div>
+
+      <form action="#" method="GET" id="geo-form">
+          <p>Search by your current location</p>
+          <p>Max distance in kilometers</p>
+          <input name="radius"     type="number" value="15"    required><br><br>
+          <input id="geolatitude"  name="geolat" type="hidden" required>
+          <input id="geolongitude" name="geolon" type="hidden" required>
+          <input id="last-lat"     name="lat"    type="hidden">
+          <input id="last-lon"     name="lon"    type="hidden">
+          <input                   name="zoom"   type="hidden" value="7">
+          <input name="submit"  type="submit" value="Search">
+          <script>getCoords();</script>
+      </form>
+
   </div>
 
 }

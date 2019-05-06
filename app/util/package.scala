@@ -1,14 +1,14 @@
-import org.osgeo.proj4j._
-import java.awt.geom.Point2D
-
 import cats.effect.IO
 import doobie.util.transactor.Transactor.Aux
 import doobie.implicits._
 import models.{Extension, Facility, defaultExtension}
-import utils.{FacilTeeFloat, distanceQuery2, withinQuery2}
+import utils.{distanceQuery2, withinQuery2}
 
 
 package object util {
+
+  /** Convert a point to GEOJSON format and convert the projection to display correctly.
+    */
   def pointToJson_(lat: Float, lon: Float, type_ : String = "Point" ) : String = {
     s"""{
       'type': 'Feature',
@@ -23,20 +23,12 @@ package object util {
     pointToJson_(latlon._1, latlon._2, type_)
   }
 
-  def rangeMapper(value: Float, start1: Float, stop1: Float, start2: Float, stop2: Float): Float = {
-    start2 + (stop2 - start2) * ((value - start1) / (stop1 - start1))
-  }
-
-  /*
--20026376.39  -20048966.10
- 20026376.39   20048966.10
-
--180.0  -90.0
- 180.0   90.0
-   */
-
+  /** Used to store a facility and a float (like a distance).
+    */
   case class FacilFloat(facility: Facility, float: Float)
 
+  /** Get facilities and their distance from the specified position.
+    */
   def getFacilsWithinRadius(lat: Float, long: Float, radius: Int, limit: Int = 20, extension: Extension = defaultExtension)(implicit xa: Aux[IO, Unit])
   : List[FacilFloat] = {
     (sql"SELECT *, "++distanceQuery2(lat, long,  extension=extension)++fr""" AS dist_in_km
