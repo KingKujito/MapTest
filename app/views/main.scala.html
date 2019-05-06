@@ -1,0 +1,22 @@
+@*
+ * This will be on every web page. Think: web page without page specific content.
+ *@
+@(title: String)(content: Html)
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>@title</title>
+        <link rel="stylesheet" media="screen" href="@routes.Assets.versioned("stylesheets/main.css")">
+        <link rel="shortcut icon" type="image/png" href="@routes.Assets.versioned("images/favicon.png")">
+
+        <script src="https://cdn.polyfill.io/v2/polyfill.min.js?features=fetch,Promise"></script>
+        <script src="https://cdn.maptiler.com/ol/v5.3.0/ol.js"></script>
+        <script src="https://cdn.maptiler.com/ol-mapbox-style/v4.2.1/olms.js"></script>
+        <script src="https://cdn.polyfill.io/v2/polyfill.min.js?features=requestAnimationFrame,Element.prototype.classList,URL"></script>
+        <link rel="stylesheet" href="https://cdn.maptiler.com/ol/v5.3.0/ol.css">
+    </head>
+    <body>
+        @content
+    </body>
+</html>
