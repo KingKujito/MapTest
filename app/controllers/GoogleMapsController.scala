@@ -14,7 +14,7 @@ import util._
 
 import scala.util.Try
 
-class HomeController @Inject()(cc: ControllerComponents) extends AbstractController(cc) {
+class GoogleMapsController @Inject()(cc: ControllerComponents) extends AbstractController(cc) {
 
   //needed to make calls to the OpenCageData API
   val client = new OpenCageClient("34707abc85774678ac21cf68ecbc193e")
@@ -38,7 +38,7 @@ class HomeController @Inject()(cc: ControllerComponents) extends AbstractControl
 
     //Either a geolocation, location retrieved based on address, or no location
     val myPoint =
-      //case where geolocation has been specified
+    //case where geolocation has been specified
       if(geoLat.isDefined && geoLon.isDefined)
         Some((geoLat.get, geoLon.get))
 
@@ -60,29 +60,39 @@ class HomeController @Inject()(cc: ControllerComponents) extends AbstractControl
     //get locations near the specified position else display random facilities
     val locations =
       if(myPoint.isDefined) {
-        val facilitiesNearby =
-          util.getFacilsWithinRadius(myPoint.get._2, myPoint.get._1, radius.toInt, limit)
-            .map(f =>
-              f.facility
-            )
-
-        facilitiesNearby.map(fac => pointToJson((fac.latitude.toFloat, fac.longitude.toFloat)))
+        util.getFacilsWithinRadius(myPoint.get._2, myPoint.get._1, radius.toInt, limit)
+          .map(f =>
+            f.facility
+          )
       }
       else
-        Facility.getAll(Some(limit)).query[Facility].to[List].transact(xa).unsafeRunSync.map(
-          fac => pointToJson((fac.latitude.toFloat, fac.longitude.toFloat))
-        )
+        List.empty
 
-    //geojson representation of the specified position
-    val myLocation = myPoint.map(p => pointToJson((p._1,p._2)))
-
-    Ok(views.html.index(
+    Ok(views.html.googleMap(
       if(ppp.isDefined) ppp.get._1 else lat,
       if(ppp.isDefined) ppp.get._2 else lon,
       if(ppp.isDefined) 6f else zoom,
-      myLocation,
+      myPoint,
       locations
     ))
+  }
+
+  def getFacilities (lat: Float = 0, lon: Float = 0, radius: Float = 100, limit: Int = 50) = Action {
+    val facilities = util.getFacilsWithinRadius(lat, lon, radius.toInt, limit)
+      .map(f =>
+        f.facility
+      )
+
+    //accidentally switched up the coordinates
+    Ok("[" +facilities.map{facility =>
+      s"""
+                    {
+                        "lat": ${facility.longitude},
+                        "lng": ${facility.latitude},
+                        "title": "${facility.name}"
+                    }
+                    """
+    }.mkString(",") + "]")
   }
 
 }

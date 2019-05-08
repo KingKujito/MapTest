@@ -19,3 +19,20 @@ body {
     color: rgb(200,200,200);
     margin: 50px;
 }
+
+//info window background {}
+.info-window {
+}
+
+//info window {}
+.gm-style, .gm-style-iw-a, .gm-style-iw-c, .gm-style-iw-d, .gm-style-iw-i, .gm-style-iw-t, .gm-style-iw-t::after,
+ .gm-style-iw-d::-webkit-scrollbar-track, .gm-style-iw-d::-webkit-scrollbar-track-piece {
+    color: white;
+    background-color: rgb(50,50,50) !important;
+}
+
+//Use this for dark backgrounds {}
+.gm-ui-hover-effect img {
+   -webkit-filter: invert(1);
+   filter: invert(1);
+}

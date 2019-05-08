@@ -57,6 +57,11 @@ function makeMap(lastLat, lastLong, lastZoom) {
 
 
 //------------------------------- OTHER -------------------------------//
+//Green
+//https://api.maptiler.com/maps/f2b727a3-1d0b-47c4-a68d-f1399e1738a2/style.json?key=n6q5rAyas7Ce6IJIhLsQ
+
+//Blue
+//https://api.maptiler.com/maps/88cf7710-e3e1-4258-95e3-00c2ee74d846/style.json?key=n6q5rAyas7Ce6IJIhLsQ
       var styleJson = 'https://api.maptiler.com/maps/88cf7710-e3e1-4258-95e3-00c2ee74d846/style.json?key=n6q5rAyas7Ce6IJIhLsQ';
       var source = new ol.source.Vector({wrapX: true});
       var vectorStyle = new ol.style.Style({
