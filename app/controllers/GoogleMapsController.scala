@@ -78,17 +78,17 @@ class GoogleMapsController @Inject()(cc: ControllerComponents) extends AbstractC
   }
 
   def getFacilities (lat: Float = 0, lon: Float = 0, radius: Float = 100, limit: Int = 50) = Action {
-    val facilities = util.getFacilsWithinRadius(lat, lon, radius.toInt, limit)
+    //TODO refactor code to use correct order of latlong so I don't have to do stuff like below (switching up the order)
+    val facilities = util.getFacilsWithinRadius(lon, lat, radius.toInt, limit)
       .map(f =>
         f.facility
       )
 
-    //accidentally switched up the coordinates
     Ok("[" +facilities.map{facility =>
       s"""
                     {
-                        "lat": ${facility.longitude},
-                        "lng": ${facility.latitude},
+                        "lat": ${facility.latitude},
+                        "lng": ${facility.longitude},
                         "title": "${facility.name}"
                     }
                     """
