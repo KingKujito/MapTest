@@ -1,7 +1,8 @@
 @import scala.collection.immutable
 @import models.Facility
+@import models.Defaults
 
-@(lastLat : Option[scala.Float], lastLon : Option[scala.Float], lastZoom : Float, myLocation: Option[(scala.Float,scala.Float)], points : immutable.List[(Facility)] = immutable.List.empty, foundIPLocation : Boolean = false)
+@(lastLat : Option[scala.Float], lastLon : Option[scala.Float], lastZoom : Float, myLocation: Option[(scala.Float,scala.Float)], foundIPLocation : Boolean = false)
 
 @main("MapTest") {
 <h1>Test the map!</h1>
@@ -10,8 +11,11 @@
     <div id="map"></div>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
     <script>
+        window.findFacilities = false;
+
         @if(myLocation.isDefined){
             @Html(s"""
+              window.findFacilities = true;
               var myX       = ${myLocation.get._2};
               var myY       = ${myLocation.get._1};
               """)
@@ -19,69 +23,19 @@
 
         //These are used to center the map around a specified position on initialization. If no location has been
         //specified or retrieved, the map will try to center around the user's IP position.
-        var lastLon   = @lastLon.getOrElse(0);
-        var lastLat   = @lastLat.getOrElse(0);
-        var lastZoom  = @lastZoom;
+        var lastLon        = @lastLon.getOrElse(0);
+        var lastLat        = @lastLat.getOrElse(0);
+        var lastZoom       = @lastZoom;
+        var defaultLimit   = @Defaults.limit;
+        var defaultRadius  = @Defaults.radius;
 
-        //Load the markers based on data provided by the backend on init.
-        function addMarkers(map) {
-
-            //Create an infowindow for the markers
-            window.infowindow = new google.maps.InfoWindow({
-                      content: 'content loading...'
-                    });
-
-            //Create a marker for each facility
-            window.markers = [
-            @Html(points.map{facility =>
-                s"""
-                    new google.maps.Marker({
-                        position: {lat: ${facility.latitude}, lng: ${facility.longitude}},
-                        map: map,
-                        icon: {
-                        url: "https://www.google.com/maps/vt/icon/name=assets/icons/poi/tactile/pinlet_shadow-2-medium.png,assets/icons/poi/tactile/pinlet_outline_v2-2-medium.png,assets/icons/poi/tactile/pinlet-2-medium.png,assets/icons/poi/quantum/pinlet/golf_pinlet-2-medium.png&highlight=ff000000,ffffff,db4437,ffffff&color=ff000000?scale=2",
-                            scaledSize: new google.maps.Size(23, 32)},
-                        title: '${facility.name}'
-                    })
-                    """
-             }.mkString(","))
-             ];
-
-            //Add infowindow functionalities for each marker.
-             markers.forEach(function(marker) {
-              marker.addListener('click', function() {
-                      infowindow.setContent('<span class="info-window">'+marker.getTitle()+'</span>');
-                      infowindow.open(map, marker);
-                    });
-            });
-
-            //Create the marker that represents a specified location from which radial queries will be performed.
-            @if(myLocation.isDefined){
-                @Html("""
-                  window.myPosMarker = new google.maps.Marker({
-                    position: {lat: myY, lng: myX},
-                    map: map,
-                    icon: {url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png", scaledSize: new google.maps.Size(50, 50)},
-                    draggable:true,
-                    title:"Find Courses!"
-                    });
-
-                    window.myPosMarker.addListener('click', function() {
-                      infowindow.setContent('<button onclick="getPoints();">Find Courses!</button>');
-                      infowindow.open(map, window.myPosMarker);
-                    });
-
-                  myPos = window.myPosMarker;
-                  """)
-            }
-        }
     </script>
     <script src="/assets/javascripts/googlemap.js"></script>
     <script src="/assets/javascripts/geolocation.js"></script>
 
     <!--If no position has been specified, center the map around the user's IP position.-->
     @if(!foundIPLocation && lastLon.isEmpty && lastLat.isEmpty){
-        <script>CenterMyPosition();</script>
+        <script>CenterMyPosition(true);</script>
     }
 
     <!--form action="#" method="GET"-->

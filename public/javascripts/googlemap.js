@@ -19,16 +19,20 @@ function initMap() {
                   }
       });
 
+  //Create an infowindow for the markers
+  window.infowindow = new google.maps.InfoWindow({
+    content: 'content loading...'
+  });
+
   //Allow for real-time updating of map information based on an address.
   //Ajax calls > WebSockets, because we want to minimize the amount of requests whenever possible (Ajax does not
   //negatively affect user experience, nor does WebSockets enrich it in this case).
   document.getElementById('geocoder').addEventListener('click', function() {
-      var address = document.getElementById('address').value;
       //Get coordinates of the address.
-      $.get("/api/coordinates/js-array?q="+address, function(res) {
+      var address = getAddress();
+      $.get("/api/coordinates/js-array?q="+encodeURIComponent(address), function(res) {
         var j = JSON.parse(res);
         var radius = document.getElementById('georadius').value;
-        var limit  = (getUrlVars()["limit"] != null) ? getUrlVars()["limit"] : 50;
         //Update the url to allow for sharing/storing queries/results.
         insertParam(
         `[{"key": "address", "val": "${address}"}, { "key": "radius", "val": ${radius} }]`);
@@ -37,22 +41,21 @@ function initMap() {
         //Center our map around the address.
         window.map.setCenter({lat: j.lat, lng: j.lng});
         //Get facilities near the address.
-        $.get("/api/facilities/js-array?lat="+j.lat+"&lon="+j.lng+"&radius="+radius+"&limit="+limit, function(result) {
-            //Create markers for the facilities.
-            updatePoints(result);
-          });
+        getPointsAPICall(j.lat, j.lng, radius, getLimit());
       });
     });
 
-  //Initialize the map with the markers based on the data from the backend provided at init.
-  addMarkers(map);
-
+  //Initialize the map with the markers.
+  //I don't know if checking against findFacilities is all that useful. It might be better to always search for facilities.
+  if(window.findFacilities) {
+    createMyMarker(lastLat,lastLon);
+    getPointsAPICall(lastLat,lastLon,getRadius(),getLimit());
+   }
 }
 
 //Google geocoder. Not used atm.
 function geocodeAddress(geocoder, resultsMap, marker) {
-  var address = document.getElementById('address').value;
-  geocoder.geocode({'address': address}, function(results, status) {
+  geocoder.geocode({'address': getAddress()}, function(results, status) {
     if (status === 'OK') {
       resultsMap.setCenter(results[0].geometry.location);
       marker.setPosition({
@@ -64,21 +67,25 @@ function geocodeAddress(geocoder, resultsMap, marker) {
   });
 }
 
-//Retrieve facilities around a position and update the markers.
+//Retrieve facilities around a position and update the markers based on the position of the 'My Location' marker.
 function getPoints () {
     var lat    = window.myPosMarker.getPosition().lat();
     var lng    = window.myPosMarker.getPosition().lng();
-    var limit  = (getUrlVars()["limit"] != null) ? getUrlVars()["limit"] : 50;
-    var radius = (getUrlVars()["radius"] != null) ? getUrlVars()["radius"] : 15;
+    var radius = getRadius();
 
     //Update the url to allow for sharing/storing queries/results.
     insertParam(
     `[{ "key": "geolat", "val": ${lat} }, { "key": "geolon", "val": ${lng} }, { "key": "radius", "val": ${radius} }]`);
 
     //Make an API call and update the markers based on the retrieved information.
-    $.get("/api/facilities/js-array?lat="+lat+"&lon="+lng+"&radius="+getUrlVars()["radius"]+"&limit="+limit, function(result) {
-      updatePoints(result);
-    });
+    getPointsAPICall(lat,lng,radius,getLimit());
+}
+
+//Retrieve facilities around a position and update the markers.
+function getPointsAPICall(lat,lng,radius,limit) {
+    $.get("/api/facilities/js-array?lat="+lat+"&lon="+lng+"&radius="+radius+"&limit="+limit, function(result) {
+          updatePoints(result);
+        });
 }
 
 //Update all markers
@@ -105,10 +112,8 @@ function updatePoints (points) {
 
     //Add infowindow functionalities to each marker.
     window.markers.forEach(function(marker) {
-        marker.addListener('click', function() {
-          window.infowindow.setContent('<span class="info-window">'+marker.getTitle()+'</span>');
-          window.infowindow.open(map, marker);
-        });});
+        addInfoWindow(marker, '<span class="info-window">'+marker.getTitle()+'</span>');
+    });
 }
 
 //Used to retrieve values from the url. Example: for "example.com?q=yes",  getUrlVars()["q"] == "yes"
@@ -134,11 +139,9 @@ function createMyMarker(lat, lng) {
         draggable:true,
         title:"Find Courses!"
     });
+
     //Add infowindow functionalities.
-    window.myPosMarker.addListener('click', function() {
-      infowindow.setContent('<button onclick="getPoints();">Find Courses!</button>');
-      infowindow.open(map, window.myPosMarker);
-    });
+    addInfoWindow(window.myPosMarker, '<button onclick="getPoints();">Find Courses!</button>');
 }
 
 //Update the url to include query parameters.
@@ -153,10 +156,39 @@ function insertParam(keyvalueJSON) {
     }
 
 //Center the map around the user's current IP position.
-function CenterMyPosition() {
+function CenterMyPosition(andSearch) {
     $.getJSON('http://ipinfo.io/json?token=63884450bf0425', function(data){
         var location = data.loc.split(",")
         window.map.setCenter({lat: parseFloat(location[0]), lng: parseFloat(location[1])});
+
+        //Also display facilities nearby
+        if(andSearch) {
+            createMyMarker   (parseFloat(location[0]),  parseFloat(location[1])  );
+            getPointsAPICall (parseFloat(location[0]),  parseFloat(location[1]), getRadius(), getLimit());
+        }
+    });
+}
+
+//Retrieve the limit for facilities returned by a query
+function getLimit() {
+    return getUrlVars()["limit"] != null ? getUrlVars()["limit"] : defaultLimit;
+}
+
+//Retrieve the radius for facilities returned by a query
+function getRadius() {
+    return getUrlVars()["radius"] != null ? getUrlVars()["radius"] : defaultRadius;
+}
+
+//Retrieve the address for facilities returned by a query
+function getAddress() {
+    return document.getElementById('address').value != null ? document.getElementById('address').value : getUrlVars()["address"];
+}
+
+//Assign infowindow functionality to a marker
+function addInfoWindow(marker, content) {
+    marker.addListener('click', function() {
+      window.infowindow.setContent(content);
+      window.infowindow.open(map, marker);
     });
 }
 
