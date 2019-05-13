@@ -22,16 +22,12 @@
         var lastZoom  = @lastZoom;
 
         function addMarkers(map) {
-        //use
-        //icon: {url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png", scaledSize: new google.maps.Size(20, 20)}
-        //for different marker icons
-        //see https://stackoverflow.com/questions/15096461/resize-google-maps-marker-icon-image
 
-            var infowindow = new google.maps.InfoWindow({
+            window.infowindow = new google.maps.InfoWindow({
                       content: 'content loading...'
                     });
 
-            var markers = [
+            window.markers = [
             @Html(points.map{facility =>
                 s"""
                     new google.maps.Marker({
@@ -56,7 +52,7 @@
 
             @if(myLocation.isDefined){
                 @Html("""
-                  var myPositionMarker = new google.maps.Marker({
+                  window.myPosMarker = new google.maps.Marker({
                     position: {lat: myY, lng: myX},
                     map: map,
                     icon: {url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png", scaledSize: new google.maps.Size(50, 50)},
@@ -64,12 +60,12 @@
                     title:"Find Courses!"
                     });
 
-                    myPositionMarker.addListener('click', function() {
+                    window.myPosMarker.addListener('click', function() {
                       infowindow.setContent('<button onclick="getPoints();">Find Courses!</button>');
-                      infowindow.open(map, myPositionMarker);
+                      infowindow.open(map, window.myPosMarker);
                     });
 
-                  myPos = myPositionMarker;
+                  myPos = window.myPosMarker;
                   """)
             }
         }
@@ -77,13 +73,13 @@
     <script src="/assets/javascripts/googlemap.js"></script>
     <script src="/assets/javascripts/geolocation.js"></script>
 
-    <form action="#" method="GET">
+    <!--form action="#" method="GET"-->
         <p>Search by address/location</p>
-        <input name="address" placeholder="Golfstreet 777, USA" required>
+        <input name="address" placeholder="Golfstreet 777, USA" id="address" required>
         <p>Max distance in kilometers</p>
-        <input name="radius"  type="number" value="15" required><br><br>
-        <input name="submit"  type="submit" value="Search">
-    </form>
+        <input name="radius"  type="number" id="georadius" value="15" required><br><br>
+        <input name="submit"  type="submit" id="geocoder" value="Search">
+    <!--/form-->
     <hr>
     <div id="allow-geo">
         <p>Allow us to search for facilities near you.</p>

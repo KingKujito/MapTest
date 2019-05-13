@@ -4,8 +4,6 @@ import cats.effect.{ContextShift, IO}
 import com.opencagedata.geocoder.OpenCageClient
 import doobie.Transactor
 import javax.inject.Inject
-import models.Facility
-import doobie.implicits._
 import doobie.util.transactor.Transactor.Aux
 import play.api.mvc._
 import scala.concurrent.duration._
@@ -31,7 +29,7 @@ class GoogleMapsController @Inject()(cc: ControllerComponents) extends AbstractC
     "lunatech"                       // password
   )
 
-  def index(lat: Float = 0, lon: Float = 0, zoom: Float = 0, radius: Float = 100, limit: Int = 50,
+  def index(lat: Option[Float], lon: Option[Float], zoom: Option[Float], radius: Float = 100, limit: Int = 50,
             address : Option[String] = None, geoLat : Option[Float], geoLon: Option[Float]) = Action {
 
     var ppp : Option[(Float,Float)]= None
@@ -68,10 +66,11 @@ class GoogleMapsController @Inject()(cc: ControllerComponents) extends AbstractC
       else
         List.empty
 
+    val IPLocation = getMyLocation
     Ok(views.html.googleMap(
-      if(ppp.isDefined) ppp.get._1 else lat,
-      if(ppp.isDefined) ppp.get._2 else lon,
-      if(ppp.isDefined) 6f else zoom,
+      if(ppp.isDefined) ppp.get._1 else lat.getOrElse[Float](IPLocation._1),
+      if(ppp.isDefined) ppp.get._2 else lon.getOrElse[Float](IPLocation._2),
+      if(ppp.isDefined) 6f else zoom.getOrElse[Float](5f),
       myPoint,
       locations
     ))
@@ -93,6 +92,18 @@ class GoogleMapsController @Inject()(cc: ControllerComponents) extends AbstractC
                     }
                     """
     }.mkString(",") + "]")
+  }
+
+  def getCoordinates(q : String) = Action {
+    val responseFuture  = client.forwardGeocode(q)
+    val response        = Await.result(responseFuture, 5.seconds)
+    val latlon          = response.results.head.geometry.get
+
+    Ok(
+      s"""
+         {"lat" : ${latlon.lat},
+          "lng" : ${latlon.lng}}
+       """.stripMargin)
   }
 
 }
