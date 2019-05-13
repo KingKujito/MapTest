@@ -1,5 +1,3 @@
-import java.net.InetAddress
-
 import cats.effect.IO
 import doobie.util.transactor.Transactor.Aux
 import doobie.implicits._
@@ -8,6 +6,8 @@ import org.json4s.DefaultFormats
 import org.json4s.jackson.JsonMethods.parse
 import scalaj.http.Http
 import utils.{distanceQuery2, withinQuery2}
+
+import scala.util.Try
 
 
 package object util {
@@ -42,26 +42,27 @@ package object util {
     ORDER BY dist_in_km LIMIT $limit""").query[FacilFloat].to[List].transact(xa).unsafeRunSync
   }
 
-  def getIp: String = {
-    import java.net.DatagramSocket
 
-    val socket: DatagramSocket = new DatagramSocket()
-    socket.connect(InetAddress.getByName("8.8.8.8"), 10002)
-    socket.getLocalAddress.getHostAddress
-  }
-
+  /**Converts a JSON string into a key->value map
+    */
   def jsonStrToMap(jsonStr: String): Map[String, Any] = {
     implicit val formats: DefaultFormats.type = org.json4s.DefaultFormats
     parse(jsonStr).extract[Map[String, Any]]
   }
 
-  def getMyLocation: (Float,Float) = {
-    jsonStrToMap(
-      Http("https://ipinfo.io/json").param("token","63884450bf0425").asString.body
-    ).get("loc").map {
+  /** Get coordinates based on an IP address
+    */
+  def getMyLocation(ip : String): Option[(Float,Float)] = {
+    def mapToLocation(map : Map[String, Any]) = map.get("loc").map {
       case s: String =>
         val f = s.split(",").map(_.toFloat).toList
         (f.head, f.reverse.head)
     }.get
+
+    Try {
+      mapToLocation(jsonStrToMap(
+        Http(s"https://ipinfo.io/$ip/json").param("token", "63884450bf0425").asString.body
+      ))
+    }.toOption
   }
 }

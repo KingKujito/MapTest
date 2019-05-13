@@ -2,11 +2,17 @@
 # This file defines all application routes (Higher priority routes first)
 # ~~~~
 
-# An example controller showing a sample home page
+# An example and explanation of how geolocation works
 GET     /geo                        controllers.BrowserGeoController.index
+
+# This page shows an example of the Google Maps API
 GET     /googlemap                  controllers.GoogleMapsController.index(lat: Option[Float], lon: Option[Float], zoom: Option[Float], radius: Float ?= 100, limit: Int ?= 50, address: Option[String], geolat: Option[Float], geolon: Option[Float])
+
+#API
 GET     /api/facilities/js-array    controllers.GoogleMapsController.getFacilities(lat: Float, lon: Float, radius: Float ?= 100, limit: Int ?= 50)
 GET     /api/coordinates/js-array   controllers.GoogleMapsController.getCoordinates(q : String)
+
+# This page shows an example of the OpenLayers API
 GET     /                           controllers.HomeController.index(lat: Float ?= 0, lon: Float ?= 0, zoom: Float ?= 0, radius: Float ?= 100, limit: Int ?= 50, address: Option[String], geolat: Option[Float], geolon: Option[Float])
 
 

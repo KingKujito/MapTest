@@ -1,7 +1,7 @@
 @import scala.collection.immutable
 @import models.Facility
 
-@(lastLat : Float = 0, lastLon : Float = 0, lastZoom : Float = 1, myLocation: Option[(scala.Float,scala.Float)], points : immutable.List[(Facility)] = immutable.List.empty)
+@(lastLat : Option[scala.Float], lastLon : Option[scala.Float], lastZoom : Float, myLocation: Option[(scala.Float,scala.Float)], points : immutable.List[(Facility)] = immutable.List.empty, foundIPLocation : Boolean = false)
 
 @main("MapTest") {
 <h1>Test the map!</h1>
@@ -17,16 +17,21 @@
               """)
         }
 
-        var lastLon   = @lastLon;
-        var lastLat   = @lastLat;
+        //These are used to center the map around a specified position on initialization. If no location has been
+        //specified or retrieved, the map will try to center around the user's IP position.
+        var lastLon   = @lastLon.getOrElse(0);
+        var lastLat   = @lastLat.getOrElse(0);
         var lastZoom  = @lastZoom;
 
+        //Load the markers based on data provided by the backend on init.
         function addMarkers(map) {
 
+            //Create an infowindow for the markers
             window.infowindow = new google.maps.InfoWindow({
                       content: 'content loading...'
                     });
 
+            //Create a marker for each facility
             window.markers = [
             @Html(points.map{facility =>
                 s"""
@@ -42,6 +47,7 @@
              }.mkString(","))
              ];
 
+            //Add infowindow functionalities for each marker.
              markers.forEach(function(marker) {
               marker.addListener('click', function() {
                       infowindow.setContent('<span class="info-window">'+marker.getTitle()+'</span>');
@@ -49,7 +55,7 @@
                     });
             });
 
-
+            //Create the marker that represents a specified location from which radial queries will be performed.
             @if(myLocation.isDefined){
                 @Html("""
                   window.myPosMarker = new google.maps.Marker({
@@ -72,6 +78,11 @@
     </script>
     <script src="/assets/javascripts/googlemap.js"></script>
     <script src="/assets/javascripts/geolocation.js"></script>
+
+    <!--If no position has been specified, center the map around the user's IP position.-->
+    @if(!foundIPLocation && lastLon.isEmpty && lastLat.isEmpty){
+        <script>CenterMyPosition();</script>
+    }
 
     <!--form action="#" method="GET"-->
         <p>Search by address/location</p>
