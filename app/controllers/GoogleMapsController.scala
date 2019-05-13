@@ -22,9 +22,8 @@ class GoogleMapsController @Inject()(cc: ControllerComponents) extends AbstractC
     val limit        = 50
     val zoom         = 5f
     val addressZoom  = 6f
+    val extension : models.Extension = models.Earthdistance
   }
-
-
 
   //needed to make calls to the OpenCageData API
   val client = new OpenCageClient("34707abc85774678ac21cf68ecbc193e")
@@ -70,7 +69,7 @@ class GoogleMapsController @Inject()(cc: ControllerComponents) extends AbstractC
     //Get locations near the specified position else display no facilities.
     val locations =
       if(myPoint.isDefined) {
-        util.getFacilsWithinRadius(myPoint.get._2, myPoint.get._1, radius.toInt, limit)
+        util.getFacilsWithinRadius(myPoint.get._2, myPoint.get._1, radius.toInt, limit, Default.extension)
           .map(f =>
             f.facility
           )
@@ -105,7 +104,7 @@ class GoogleMapsController @Inject()(cc: ControllerComponents) extends AbstractC
     */
   def getFacilities (lat: Float = 0, lon: Float = 0, radius: Float = 100, limit: Int = 50) = Action {
     //TODO refactor code to use correct order of latlong so I don't have to do stuff like below (switching up the order)
-    val facilities = util.getFacilsWithinRadius(lon, lat, radius.toInt, limit)
+    val facilities = util.getFacilsWithinRadius(lon, lat, radius.toInt, limit, Default.extension)
       .map(f =>
         f.facility
       )

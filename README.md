@@ -8,6 +8,7 @@ This is a simple demonstration of the basic functionalities provided by the Goog
 - Generated sample data using either https://github.com/KingKujito/doobieTestProject or https://github.com/KingKujito/PostGIS-test-project
 
 ### Setup
+- Change the info in GoogleMapsController.xa to comply with your local db.
 - Run 'sbt run'
 
 ### Playground
