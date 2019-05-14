@@ -1,3 +1,5 @@
+import java.sql.Time
+
 import cats.effect.IO
 import doobie.util.transactor.Transactor.Aux
 import doobie.implicits._
@@ -39,6 +41,36 @@ package object util {
     (sql"SELECT *, "++distanceQuery2(lat, long,  extension=extension)++fr""" AS dist_in_km
     FROM facility
     WHERE """++withinQuery2(lat, long, radius, extension=extension)++fr"""
+    ORDER BY dist_in_km LIMIT $limit""").query[FacilFloat].to[List].transact(xa).unsafeRunSync
+  }
+
+  /** Get facilities and their distance from the specified position. Comply with teetime range.
+    */
+  def getFacilsWithinRadiusBasedOnTime(
+                             teerange:(Int,Int),
+                             lat: Float, long: Float,
+                             radius: Int, limit: Int = 20,
+                             extension: Extension = defaultExtension)(implicit xa: Aux[IO, Unit])
+  : List[FacilFloat] = {
+    val hightime = if (teerange._2 == 24) new Time(23,59,59) else new Time(teerange._2,0,0)
+    (sql"SELECT DISTINCT facility.*, "++distanceQuery2(lat, long,  extension=extension)++fr""" AS dist_in_km
+    FROM facility, teetime
+    WHERE """++withinQuery2(lat, long, radius, extension=extension)++fr""" AND teetime.time_ >= ${new Time(teerange._1,0,0)} AND teetime.time_ <= ${hightime} AND facility.id = teetime.facility
+    ORDER BY dist_in_km LIMIT $limit""").query[FacilFloat].to[List].transact(xa).unsafeRunSync
+  }
+
+  /** Get facilities and their distance from the specified position. Comply with teetime range. Only return non time-compliant.
+    */
+  def getFacilsWithinRadiusInverseOnTime(
+                                        teerange:(Int,Int),
+                                        lat: Float, long: Float,
+                                        radius: Int, limit: Int = 20,
+                                        extension: Extension = defaultExtension)(implicit xa: Aux[IO, Unit])
+  : List[FacilFloat] = {
+    val hightime = if (teerange._2 == 24) new Time(23,59,59) else new Time(teerange._2,0,0)
+    (sql"SELECT DISTINCT facility.*, "++distanceQuery2(lat, long,  extension=extension)++fr""" AS dist_in_km
+    FROM facility, teetime
+    WHERE """++withinQuery2(lat, long, radius, extension=extension)++fr""" AND teetime.time_ NOT BETWEEN ${new Time(teerange._1,0,0)} AND ${hightime} AND facility.id = teetime.facility
     ORDER BY dist_in_km LIMIT $limit""").query[FacilFloat].to[List].transact(xa).unsafeRunSync
   }
 

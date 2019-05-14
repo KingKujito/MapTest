@@ -10,6 +10,7 @@
 <div>
     <div id="map"></div>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <script>
         window.findFacilities = false;
 
@@ -37,6 +38,15 @@
     @if(!foundIPLocation && lastLon.isEmpty && lastLat.isEmpty){
         <script>CenterMyPosition(true);</script>
     }
+
+    <p>
+        <label for="teetime">Teetime:</label>
+        <input type="text" id="teetime" readonly style="border:0; color:white; background-color:black;">
+        <input type="hidden" id="time-low">
+        <input type="hidden" id="time-high">
+    </p>
+    <div id="slider-range"></div>
+    <hr>
 
     <!--form action="#" method="GET"-->
         <p>Search by address/location</p>

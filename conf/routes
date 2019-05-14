@@ -9,7 +9,7 @@ GET     /geo                        controllers.BrowserGeoController.index
 GET     /googlemap                  controllers.GoogleMapsController.index(lat: Option[Float], lon: Option[Float], zoom: Option[Float], radius: Float ?= 100, limit: Int ?= 50, address: Option[String], geolat: Option[Float], geolon: Option[Float])
 
 #API
-GET     /api/facilities/js-array    controllers.GoogleMapsController.getFacilities(lat: Float, lon: Float, radius: Float ?= 100, limit: Int ?= 50)
+GET     /api/facilities/js-array    controllers.GoogleMapsController.getFacilities(lat: Float, lon: Float, radius: Float ?= 100, limit: Int ?= 50, timeLow: Option[Int], timeHigh: Option[Int])
 GET     /api/coordinates/js-array   controllers.GoogleMapsController.getCoordinates(q : String)
 
 # This page shows an example of the OpenLayers API

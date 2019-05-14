@@ -83,9 +83,20 @@ function getPoints () {
 
 //Retrieve facilities around a position and update the markers.
 function getPointsAPICall(lat,lng,radius,limit) {
-    $.get("/api/facilities/js-array?lat="+lat+"&lon="+lng+"&radius="+radius+"&limit="+limit, function(result) {
+    var timeLow = document.getElementById('time-low').value;
+    var timeHigh = document.getElementById('time-high').value;
+
+    if(timeLow == 0 && timeHigh == 24) {
+        $.get("/api/facilities/js-array?lat="+lat+"&lon="+lng+"&radius="+radius+"&limit="+limit, function(result) {
           updatePoints(result);
         });
+    } else {
+        $.get("/api/facilities/js-array?lat="+lat+"&lon="+lng+"&radius="+radius+"&limit="+limit+"&timeLow="+timeLow+"&timeHigh="+timeHigh, function(result) {
+          updatePoints(result);
+        });
+    }
+
+
 }
 
 //Update all markers
@@ -105,7 +116,7 @@ function updatePoints (points) {
            position: {lat: x.lat, lng: x.lng},
            map: map,
            icon: {
-                url: "https://www.google.com/maps/vt/icon/name=assets/icons/poi/tactile/pinlet_shadow-2-medium.png,assets/icons/poi/tactile/pinlet_outline_v2-2-medium.png,assets/icons/poi/tactile/pinlet-2-medium.png,assets/icons/poi/quantum/pinlet/golf_pinlet-2-medium.png&highlight=ff000000,ffffff,db4437,ffffff&color=ff000000?scale=2",
+                url: x.icon,
                 scaledSize: new google.maps.Size(23, 32)},
            title: x.title
            }));

@@ -13,6 +13,7 @@ import models.Defaults
 import scala.util.Try
 
 class GoogleMapsController @Inject()(cc: ControllerComponents) extends AbstractController(cc) {
+  //TODO add teetime stuff to queries
 
   //needed to make calls to the OpenCageData API
   val client = new OpenCageClient("34707abc85774678ac21cf68ecbc193e")
@@ -78,19 +79,36 @@ class GoogleMapsController @Inject()(cc: ControllerComponents) extends AbstractC
 
   /** API procedure which returns Facilities.
     */
-  def getFacilities (lat: Float = 0, lon: Float = 0, radius: Float = 100, limit: Int = 50) = Action {
+  def getFacilities (
+                      lat: Float     = 0,      lon: Float = 0,
+                      radius: Float  = 100,    limit: Int = 50,
+                      timeRangeLow: Option[Int] = None,
+                      timeRangeHigh: Option[Int] = None
+                    ) = Action {
     //TODO refactor code to use correct order of latlong so I don't have to do stuff like below (switching up the order)
-    val facilities = util.getFacilsWithinRadius(lon, lat, radius.toInt, limit, Defaults.extension)
-      .map(f =>
-        f.facility
-      )
+    val facilities =
+      if(timeRangeLow.isDefined && timeRangeHigh.isDefined)
+        util.getFacilsWithinRadiusBasedOnTime((timeRangeLow.get, timeRangeHigh.get), lon, lat, radius.toInt, limit, Defaults.extension)
+          .map(f =>
+            (f.facility, Defaults.golfMarker)
+          ).:::(
+          util.getFacilsWithinRadiusInverseOnTime((timeRangeLow.get, timeRangeHigh.get), lon, lat, radius.toInt, (limit*0.6).toInt, Defaults.extension)
+            .map(f =>
+              (f.facility, Defaults.golfIconNotAvailable)
+            ))
+      else
+        util.getFacilsWithinRadius(lon, lat, radius.toInt, limit, Defaults.extension)
+          .map(f =>
+            (f.facility, Defaults.golfMarker)
+          )
 
     Ok("[" +facilities.map{facility =>
       s"""
                     {
-                        "lat": ${facility.latitude},
-                        "lng": ${facility.longitude},
-                        "title": "${facility.name}"
+                        "lat": ${facility._1.latitude},
+                        "lng": ${facility._1.longitude},
+                        "title": "${facility._1.name}",
+                        "icon": "${facility._2}"
                     }
                     """
     }.mkString(",") + "]")
