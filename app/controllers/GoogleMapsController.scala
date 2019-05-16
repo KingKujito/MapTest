@@ -80,6 +80,31 @@ class GoogleMapsController @Inject()(
     ))
   }
 
+  /** API procedure which returns Facilities based on a view port.
+    */
+  def getFacilitiesWithinBounds(north: Float, south: Float, east: Float, west: Float,
+                                limit: Option[Int] = None,
+                                timeRangeLow: Option[Int] = None,
+                                timeRangeHigh: Option[Int] = None
+                               ) = Action {
+    val facilities =
+      if(timeRangeLow.isDefined && timeRangeHigh.isDefined && !(timeRangeLow.get == 0 && timeRangeHigh.get == 24))
+        util.getFacilitiesWithinBoundsWithinTime(north, south, east, west, (timeRangeLow.get, timeRangeHigh.get), false, limit)
+          .map(f =>
+            (f, Defaults.golfMarker)).:::(
+          util.getFacilitiesWithinBoundsWithinTime(north, south, east, west, (timeRangeLow.get, timeRangeHigh.get), true, limit)
+            .map(f =>
+              (f, Defaults.golfIconNotAvailable))
+        )
+      else
+        util.getFacilitiesWithinBounds(north, south, east, west, limit)
+          .map(f =>
+            (f, Defaults.golfMarker))
+
+    Ok(facilityStringToJson(facilities))
+  }
+
+
 
   /** API procedure which returns Facilities.
     */
@@ -109,16 +134,7 @@ class GoogleMapsController @Inject()(
             (f.facility, Defaults.golfMarker)
           )
 
-    Ok("[" +facilities.map{facility =>
-      s"""
-                    {
-                        "lat": ${facility._1.latitude},
-                        "lng": ${facility._1.longitude},
-                        "title": "${facility._1.name}",
-                        "icon": "${facility._2}"
-                    }
-                    """
-    }.mkString(",") + "]")
+    Ok(facilityStringToJson(facilities))
   }
 
   /** API procedure which returns Coordinates based on an address.

@@ -77,6 +77,32 @@ package object util {
   }
 
 
+  /**Get facilities within a square on the map. Switched the coordinate axis since I screwed up the order in the db.
+    */
+  def getFacilitiesWithinBounds (north: Float, south: Float, east: Float, west: Float, limit: Option[Int] = None)
+                                (implicit xa: Aux[IO, Unit]): List[Facility] = {
+    (
+      sql"SELECT * from facility WHERE (longitude BETWEEN $south AND $north) AND (latitude BETWEEN $west AND $east) "++
+        (if(limit.isDefined) fr"LIMIT ${limit.get}" else fr"")
+    ).query[Facility].to[List].transact(xa).unsafeRunSync
+  }
+
+  def getFacilitiesWithinBoundsWithinTime (
+                                            north: Float, south: Float, east: Float, west: Float,
+                                            teerange:(Int,Int),
+                                            inverse : Boolean = false,
+                                            limit: Option[Int] = None)
+                                (implicit xa: Aux[IO, Unit]): List[Facility] = {
+    val hightime = if (teerange._2 == 24) new Time(23,59,59) else new Time(teerange._2,0,0)
+    (sql"SELECT DISTINCT facility.* FROM facility, teetime WHERE (longitude BETWEEN $south AND $north) AND " ++
+      fr"(latitude BETWEEN $west AND $east) AND teetime.time_ "++
+      (if(inverse)fr"NOT" else fr"")
+      ++fr" BETWEEN ${new Time(teerange._1,0,0)} AND ${hightime} AND facility.id = teetime.facility"++
+        (if(limit.isDefined) fr"LIMIT ${limit.get}" else fr"")
+      ).query[Facility].to[List].transact(xa).unsafeRunSync
+  }
+
+
   /**Converts a JSON string into a key->value map
     */
   def jsonStrToMap(jsonStr: String): Map[String, Any] = {
@@ -98,5 +124,21 @@ package object util {
         Http(s"https://ipinfo.io/$ip/json").param("token", config.get[String]("ipinfo.api.token")).asString.body
       ))
     }.toOption
+  }
+
+  /**
+    * Turn facilities into Jsons.
+    */
+  def facilityStringToJson (facilities : List[(Facility, String)]): String = {
+    "[" +facilities.map{facility =>
+      s"""
+        {
+          "lat": ${facility._1.latitude},
+          "lng": ${facility._1.longitude},
+          "title": "${facility._1.name}",
+          "icon": "${facility._2}"
+        }
+      """
+    }.mkString(",") + "]"
   }
 }
