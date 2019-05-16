@@ -6,12 +6,14 @@ import doobie.implicits._
 import models.{Extension, Facility, defaultExtension}
 import org.json4s.DefaultFormats
 import org.json4s.jackson.JsonMethods.parse
+import play.api.Configuration
 import scalaj.http.Http
 import utils.{distanceQuery2, withinQuery2}
 
 import scala.util.Try
 
 
+//noinspection ScalaDeprecation
 package object util {
 
   /** Convert a point to GEOJSON format and convert the projection to display correctly.
@@ -84,7 +86,7 @@ package object util {
 
   /** Get coordinates based on an IP address
     */
-  def getMyLocation(ip : String): Option[(Float,Float)] = {
+  def getMyLocation(ip : String)(implicit config: Configuration): Option[(Float,Float)] = {
     def mapToLocation(map : Map[String, Any]) = map.get("loc").map {
       case s: String =>
         val f = s.split(",").map(_.toFloat).toList
@@ -93,7 +95,7 @@ package object util {
 
     Try {
       mapToLocation(jsonStrToMap(
-        Http(s"https://ipinfo.io/$ip/json").param("token", "63884450bf0425").asString.body
+        Http(s"https://ipinfo.io/$ip/json").param("token", config.get[String]("ipinfo.api.token")).asString.body
       ))
     }.toOption
   }

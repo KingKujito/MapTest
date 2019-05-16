@@ -39,6 +39,10 @@
         <script>CenterMyPosition(true);</script>
     }
 
+
+    <button onclick="toggleHeatmap();" type="button">Toggle Heatmap</button>
+
+
     <p>
         <label for="teetime">Teetime:</label>
         <input type="text" id="teetime" readonly style="border:0; color:white; background-color:black;">
@@ -74,7 +78,7 @@
         <script>getCoords();</script>
     </form>
 
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAuNX3q4tleOgFYfculRieQCZ4mVhbH0oA&callback=initMap"> </script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAuNX3q4tleOgFYfculRieQCZ4mVhbH0oA&callback=initMap&libraries=visualization"> </script>
 </div>
 
 }

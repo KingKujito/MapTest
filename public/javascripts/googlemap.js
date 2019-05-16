@@ -53,6 +53,7 @@ function initMap() {
    }
 }
 
+
 //Google geocoder. Not used atm.
 function geocodeAddress(geocoder, resultsMap, marker) {
   geocoder.geocode({'address': getAddress()}, function(results, status) {
@@ -79,6 +80,9 @@ function getPoints () {
 
     //Make an API call and update the markers based on the retrieved information.
     getPointsAPICall(lat,lng,radius,getLimit());
+
+    //render the heatmap
+    initHeatmap(lat, lng, radius, getLimit());
 }
 
 //Retrieve facilities around a position and update the markers.
@@ -86,10 +90,12 @@ function getPointsAPICall(lat,lng,radius,limit) {
     var timeLow = document.getElementById('time-low').value;
     var timeHigh = document.getElementById('time-high').value;
 
+    //Make a simple 'get all' query if time range is all times.
     if(timeLow == 0 && timeHigh == 24) {
         $.get("/api/facilities/js-array?lat="+lat+"&lon="+lng+"&radius="+radius+"&limit="+limit, function(result) {
           updatePoints(result);
         });
+    //Make a 'get all within time range' query if time range is specific.
     } else {
         $.get("/api/facilities/js-array?lat="+lat+"&lon="+lng+"&radius="+radius+"&limit="+limit+"&timeLow="+timeLow+"&timeHigh="+timeHigh, function(result) {
           updatePoints(result);
@@ -151,8 +157,30 @@ function createMyMarker(lat, lng) {
         title:"Find Courses!"
     });
 
+    //Render the search circle
+    drawSearchCircle();
+
     //Add infowindow functionalities.
     addInfoWindow(window.myPosMarker, '<button onclick="getPoints();">Find Courses!</button>');
+
+    //Update search circle as we move the marker.
+    window.myPosMarker.addListener('drag', function() {
+          updateSearchCircle();
+        });
+
+    //Don't render the search circle if when not relevant.
+    window.myPosMarker.addListener('mouseout', function() {
+          window.searchCircle.setVisible(false);
+        });
+
+    //Render the search circle if when not relevant.
+    window.myPosMarker.addListener('mouseover', function() {
+          window.searchCircle.setVisible(true);
+        });
+
+
+   //render the heatmap
+   initHeatmap(lat, lng, getRadius(), getLimit());
 }
 
 //Update the url to include query parameters.
@@ -203,3 +231,76 @@ function addInfoWindow(marker, content) {
     });
 }
 
+//Update and display the search circle to comply with the 'my position' marker.
+function updateSearchCircle () {
+    if (window.searchCircle != null) {
+        var pos = window.myPosMarker.getPosition();
+        window.searchCircle.setCenter({lat: pos.lat(), lng: pos.lng()});
+        window.searchCircle.setVisible(true);
+    }
+}
+
+//Draw the search circle based on the 'my position' marker
+function drawSearchCircle () {
+  var pos = window.myPosMarker.getPosition();
+  createSearchCircle(pos.lat(), pos.lng(), getRadius());
+  window.searchCircle.setVisible(true);
+}
+
+//Create the search circle.
+function createSearchCircle (lat, lng, rad) {
+
+    //Delete the old circle if one is present.
+    if (window.searchCircle != null) {
+        window.searchCircle.setMap(null);
+    }
+
+    window.searchCircle = new google.maps.Circle({
+          strokeColor: '#00701b',
+          strokeOpacity: 0.8,
+          strokeWeight: 2,
+          fillColor: '#60c178',
+          fillOpacity: 0.1,
+          map: map,
+          center: {lat: lat, lng: lng},
+          //rad = in kilometers, radius = in meters
+          radius: (rad * 1000)
+        });
+}
+
+//Create a heatmap
+function createHeatmap(points) {
+
+    if(window.heatmap != null) {
+        window.heatmap.setMap(null);
+    }
+
+    window.heatmap = new google.maps.visualization.HeatmapLayer({
+      data: points,
+      map: map,
+      gradient: [
+                          'rgba(0, 0, 0, 0)',
+                          'rgba(200, 255, 200, 0.6)',
+                          'rgba(100, 100, 100, 0)',
+                          'rgba(200, 200, 200, 0)',
+                          'rgba(180, 255, 200, 0)'
+                        ]
+    });
+}
+
+function toggleHeatmap() {
+    if (window.heatmap != null) {
+        window.heatmap.setMap(heatmap.getMap() ? null : map);
+    }
+}
+
+function initHeatmap(lat, lng, radius, limit) {
+    $.get("/api/facilities/js-array?lat="+lat+"&lon="+lng+"&radius="+radius*10+"&limit="+limit*20, function(result) {
+              var d = JSON.parse(result).map(x => new google.maps.LatLng(x.lat, x.lng));
+
+              createHeatmap(
+                d
+              );
+
+            });
+}

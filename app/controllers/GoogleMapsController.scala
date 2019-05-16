@@ -1,22 +1,30 @@
 package controllers
 
 import cats.effect.{ContextShift, IO}
-import com.opencagedata.geocoder.OpenCageClient
 import doobie.Transactor
-import javax.inject.Inject
+import javax.inject._
 import doobie.util.transactor.Transactor.Aux
 import play.api.mvc._
-import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext}
+import scala.concurrent.ExecutionContext
 import util._
 import models.Defaults
+import play.api.Configuration
+import services._
+
 import scala.util.Try
 
-class GoogleMapsController @Inject()(cc: ControllerComponents) extends AbstractController(cc) {
-  //TODO add teetime stuff to queries
+object GoogleMapsController{
+  //Use OpenCageData for geocoding
+  type GeocodingService = OpenCageDataService
+}
 
-  //needed to make calls to the OpenCageData API
-  val client = new OpenCageClient("34707abc85774678ac21cf68ecbc193e")
+@Singleton
+class GoogleMapsController @Inject()(
+                                      cc                : ControllerComponents,
+                                      geocodingService  : GoogleMapsController.GeocodingService,
+                                      implicit val config : Configuration
+                                    )
+  extends AbstractController(cc) {
 
   //needed by Doobie
   implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
@@ -45,11 +53,7 @@ class GoogleMapsController @Inject()(cc: ControllerComponents) extends AbstractC
       //case where address has been defined
       else if (address.isDefined)
         Try {
-          val responseFuture  = client.forwardGeocode(address.get)
-          val response        = Await.result(responseFuture, 5.seconds)
-          val latlon          = response.results.head.geometry.get
-
-          (latlon.lat, latlon.lng)
+          geocodingService.forwardGeocode(address.get)
         }.toOption
 
       //case where no location has been defined
@@ -88,15 +92,18 @@ class GoogleMapsController @Inject()(cc: ControllerComponents) extends AbstractC
     //TODO refactor code to use correct order of latlong so I don't have to do stuff like below (switching up the order)
     val facilities =
       if(timeRangeLow.isDefined && timeRangeHigh.isDefined)
+        //Return all facilities within radius complying with time preference and display them normally.
         util.getFacilsWithinRadiusBasedOnTime((timeRangeLow.get, timeRangeHigh.get), lon, lat, radius.toInt, limit, Defaults.extension)
           .map(f =>
             (f.facility, Defaults.golfMarker)
           ).:::(
+          //Return all facilities within radius not complying with time preference and display them differently.
           util.getFacilsWithinRadiusInverseOnTime((timeRangeLow.get, timeRangeHigh.get), lon, lat, radius.toInt, (limit*0.6).toInt, Defaults.extension)
             .map(f =>
               (f.facility, Defaults.golfIconNotAvailable)
             ))
       else
+        //Return all facilities within radius and display them normally.
         util.getFacilsWithinRadius(lon, lat, radius.toInt, limit, Defaults.extension)
           .map(f =>
             (f.facility, Defaults.golfMarker)
@@ -117,14 +124,12 @@ class GoogleMapsController @Inject()(cc: ControllerComponents) extends AbstractC
   /** API procedure which returns Coordinates based on an address.
     */
   def getCoordinates(q : String) = Action {
-    val responseFuture  = client.forwardGeocode(q)
-    val response        = Await.result(responseFuture, 5.seconds)
-    val latlon          = response.results.head.geometry.get
+    val latlon          = geocodingService.forwardGeocode(q)
 
     Ok(
       s"""
-         {"lat" : ${latlon.lat},
-          "lng" : ${latlon.lng}}
+         {"lat" : ${latlon._1},
+          "lng" : ${latlon._2}}
        """.stripMargin)
   }
 
