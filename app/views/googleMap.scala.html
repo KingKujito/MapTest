@@ -31,7 +31,7 @@
         var defaultRadius  = @Defaults.radius;
 
     </script>
-    @* Remove the 'New' in 'googlemapNew' for the other version. *@
+    @* Remove the 'New' in 'googlemapNew' for the other version. Uncomment the radius inputs when you do. *@
     <script src="/assets/javascripts/googlemapNew.js"></script>
     <script src="/assets/javascripts/geolocation.js"></script>
 
@@ -56,8 +56,8 @@
     <!--form action="#" method="GET"-->
         <p>Search by address/location</p>
         <input name="address" placeholder="Golfstreet 777, USA" id="address" required>
-        <p>Max distance in kilometers</p>
-        <input name="radius"  type="number" id="georadius" value="15" required><br><br>
+        <!--p>Max distance in kilometers</p>
+        <input name="radius"  type="number" id="georadius" value="15" required><br><br-->
         <input name="submit"  type="submit" id="geocoder" value="Search">
     <!--/form-->
     <hr>
@@ -68,13 +68,13 @@
 
     <form action="#" method="GET" id="geo-form">
         <p>Search by your current location</p>
-        <p>Max distance in kilometers</p>
-        <input name="radius"     type="number" value="15"    required><br><br>
+        <!--p>Max distance in kilometers</p>
+        <input name="radius"     type="number" value="15"    required><br><br-->
         <input id="geolatitude"  name="geolat" type="hidden" required>
         <input id="geolongitude" name="geolon" type="hidden" required>
         <input id="last-lat"     name="lat"    type="hidden">
         <input id="last-lon"     name="lon"    type="hidden">
-        <input                   name="zoom"   type="hidden" value="7">
+        <input                   name="zoom"   type="hidden" value="13">
         <input name="submit"  type="submit" value="Search">
         <script>getCoords();</script>
     </form>

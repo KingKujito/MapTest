@@ -40,14 +40,12 @@ function initMap() {
       var address = getAddress();
       $.get("/api/coordinates/js-array?q="+encodeURIComponent(address), function(res) {
         var j = JSON.parse(res);
-        var radius = document.getElementById('georadius').value;
         //Update the url to allow for sharing/storing queries/results.
+        map.setZoom(8);
         insertParam(
-        `[{"key": "address", "val": "${address}"}, { "key": "radius", "val": ${radius} }]`);
+        `[{"key": "zoom", "val": "${map.getZoom()}"}, {"key": "address", "val": "${address}"}]`);
         //Center our map around the address.
         window.map.setCenter({lat: j.lat, lng: j.lng});
-        //Get facilities near the address.
-        getPointsAPICall(j.lat, j.lng, radius, getLimit());
       });
     });
 
@@ -97,6 +95,7 @@ function updatePoints (points) {
     });
 }
 
+//remove all markers from the map
 function clearMarkers() {
     if(window.markers != null) {
         window.markers.forEach(function(marker) {
@@ -167,25 +166,21 @@ function createHeatmap(points) {
     });
 }
 
+//Clear the graphics of the heatmap.
 function clearHeatmap() {
     if(window.heatmap != null) {
             window.heatmap.setMap(null);
         }
 }
 
+//turn the heatmap on/off
 function toggleHeatmap() {
     if (window.heatmap != null) {
         window.heatmap.setMap(heatmap.getMap() ? null : map);
     }
 }
 
-function initHeatmap(lat, lng, radius, limit) {
-    $.get("/api/facilities/js-array?lat="+lat+"&lon="+lng+"&radius="+radius*10+"&limit="+limit*20, function(result) {
-              var d = JSON.parse(result).map(x => new google.maps.LatLng(x.lat, x.lng));
-              createHeatmap(d);
-            });
-}
-
+//Updates the heatmap/markers based on viewport
 function updateMap() {
     var n = map.getBounds().getNorthEast().lat();
     var s = map.getBounds().getSouthWest().lat();
@@ -219,6 +214,8 @@ function updateMap() {
     }
 }
 
+//Trying to salvage what I can
+//TODO fix these functions, make sure they work
 function east(e, w) {
     if(e < w && w > 0) {
         return e + 360;

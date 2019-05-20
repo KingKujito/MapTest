@@ -8,8 +8,8 @@ import java.awt.Color
 object Defaults {
   val radius       = 100f     //for spatial queries
   val limit        = 100      //for spatial queries
-  val zoom         = 5f       //for the map view
-  val addressZoom  = 6f       //for the map view
+  val zoom         = 7f       //for the map view
+  val addressZoom  = 9f       //for the map view
   val extension : models.Extension = models.Earthdistance   //for spatial queries
 
   //Used to represent a facility.
