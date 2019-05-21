@@ -1,5 +1,49 @@
 //https://www.google.com/maps/vt/icon/name=assets/icons/poi/tactile/pinlet_shadow-2-medium.png,assets/icons/poi/tactile/pinlet_outline_v2-2-medium.png,assets/icons/poi/tactile/pinlet-2-medium.png,assets/icons/poi/quantum/pinlet/golf_pinlet-2-medium.png&highlight=ff000000,ffffff,db4437,ffffff&color=ff000000?scale=2
 
+//The zoom level at which a heatmap switches to markers
+var zoomLevelHeatmapMarkers = 9; //8
+
+//Whether to use clusters or a heatmap
+window.useCluster = false;
+
+//Various styles for the cluster view.
+var clusterStyles = [
+  {
+    textColor: 'white',
+    url: 'http://localhost:9000/assets/images/m/m1.png',
+    height: 48,
+    width: 48
+  }, {
+      textColor: 'white',
+      url: 'http://localhost:9000/assets/images/m/m2.png',
+      height: 48,
+      width: 48
+    }, {
+       textColor: 'white',
+       url: 'http://localhost:9000/assets/images/m/m3.png',
+       height: 48,
+       width: 48
+     }, {
+         textColor: 'white',
+         url: 'http://localhost:9000/assets/images/m/m4.png',
+         height: 48,
+         width: 48
+       }, {
+           textColor: 'white',
+           url: 'http://localhost:9000/assets/images/m/m5.png',
+           height: 48,
+           width: 48
+         }
+];
+
+//The style/options of our map cluster
+var mcOptions = {
+    gridSize: 50,
+    styles: clusterStyles,
+    maxZoom: 15
+};
+
+
 // Initialize and add the map
 function initMap() {
   // The map, centered at a point provided by the backend
@@ -24,11 +68,16 @@ function initMap() {
     content: 'content loading...'
   });
 
-
+  //As soon as the map stops zooming/scrolling
   google.maps.event.addListener(map, 'idle', function() {
       insertParam(
           `[{"key": "zoom", "val": "${map.getZoom()}"}, { "key": "lat", "val": ${map.getCenter().lat()} }, { "key": "lng", "val": ${map.getCenter().lng()} }]`);
-      updateMap();
+      //Make a request and update the map with relevant data.
+      if(useCluster) {
+        requestHandler();
+      } else {
+        updateMap();
+      }
   });
 
 
@@ -46,6 +95,8 @@ function initMap() {
         `[{"key": "zoom", "val": "${map.getZoom()}"}, {"key": "address", "val": "${address}"}]`);
         //Center our map around the address.
         window.map.setCenter({lat: j.lat, lng: j.lng});
+        //Update the map
+        updateMap();
       });
     });
 
@@ -71,12 +122,7 @@ function geocodeAddress(geocoder, resultsMap, marker) {
 function updatePoints (points) {
     var d = JSON.parse(points);
 
-    //Delete all old markers if any are present.
-    if (window.markers != null) {
-        window.markers.forEach(function(marker) {
-          marker.setMap(null);
-        });
-    }
+    clearMarkers();
 
     //Create markers.
     window.markers = d.map(x =>
@@ -93,10 +139,25 @@ function updatePoints (points) {
     window.markers.forEach(function(marker) {
         addInfoWindow(marker, '<span class="info-window">'+marker.getTitle()+'</span>');
     });
+
+    //Make a marker cluster if desired
+    if(window.useCluster) {
+        if (window.markerCluster == null) {
+            window.markerCluster = new MarkerClusterer(map, window.markers, mcOptions);
+        } else {
+            window.markerCluster.addMarkers(window.markers);
+        }
+    }
 }
 
 //remove all markers from the map
 function clearMarkers() {
+    //Delete the old cluster if any are present.
+    if (window.markerCluster != null) {
+        markerCluster.clearMarkers()
+    }
+
+    //Delete all old markers if any are present.
     if(window.markers != null) {
         window.markers.forEach(function(marker) {
             marker.setMap(null);
@@ -127,8 +188,9 @@ function insertParam(keyvalueJSON) {
 //Center the map around the user's current IP position.
 function CenterMyPosition() {
     $.getJSON('http://ipinfo.io/json?token=63884450bf0425', function(data){
-        var location = data.loc.split(",")
+        var location = data.loc.split(",");
         window.map.setCenter({lat: parseFloat(location[0]), lng: parseFloat(location[1])});
+        updateMap();
     });
 }
 
@@ -139,10 +201,20 @@ function getAddress() {
 
 //Assign infowindow functionality to a marker
 function addInfoWindow(marker, content) {
-    marker.addListener('click', function() {
+    marker.addListener('mouseover', function() {
       window.infowindow.setContent(content);
       window.infowindow.open(map, marker);
     });
+    marker.addListener('click', function() {
+          openModal(marker.getTitle());
+        });
+}
+
+
+//open the modal
+function openModal(text) {
+    document.getElementById('my-modal').style.display='block';
+    document.getElementById('my-modal-facility').innerHTML = text;
 }
 
 
@@ -175,10 +247,48 @@ function clearHeatmap() {
 
 //turn the heatmap on/off
 function toggleHeatmap() {
-    if (window.heatmap != null) {
-        window.heatmap.setMap(heatmap.getMap() ? null : map);
-    }
+    window.useCluster = !window.useCluster;
+    updateMap();
 }
+
+//This function makes sure requests are only made when necessary.
+//If you zoom or scroll within the bounds of a previous request, no new data should be loaded.
+function requestHandler() {
+    //lZoom = last zoom state
+    if(window.lZoom == null) {
+        window.lZoom  = map.getZoom();
+    }
+
+    var n = map.getBounds().getNorthEast().lat();
+    var s = map.getBounds().getSouthWest().lat();
+    var e = map.getBounds().getNorthEast().lng();
+    var w = map.getBounds().getSouthWest().lng();
+    var z = map.getZoom();
+
+    var nb = n > window.lastNorth;
+    var sb = s < window.lastSouth;
+    var eb = e > window.lastEast;
+    var wb = w < window.lastWest;
+    var zb = window.lZoom <= 3 && z > 3;
+
+    //Update the map only when a section of the viewport is seen, which has no facility info loaded yet
+    if(
+      ((window.lastNorth == null || window.lastSouth == null || window.lastEast == null || window.lastWest == null) ||
+       (nb || sb || eb || wb || zb))) {
+        saveBounds();
+        updateMap();
+    }
+    window.lZoom  = map.getZoom();
+}
+
+//save last bounds of the viewport
+function saveBounds() {
+  window.lastNorth = map.getBounds().getNorthEast().lat();
+  window.lastSouth = map.getBounds().getSouthWest().lat();
+  window.lastEast  = map.getBounds().getNorthEast().lng();
+  window.lastWest  = map.getBounds().getSouthWest().lng();
+}
+
 
 //Updates the heatmap/markers based on viewport
 function updateMap() {
@@ -201,7 +311,7 @@ function updateMap() {
             +"&high="+
             document.getElementById("time-high").value
             +"&limit=50000", function(result) {
-          if (map.getZoom() < 8) {
+          if (map.getZoom() < zoomLevelHeatmapMarkers && !useCluster) {
             clearMarkers();
             createHeatmap(JSON.parse(result).map(x => new google.maps.LatLng(x.lat, x.lng)));
           } else {
@@ -211,8 +321,11 @@ function updateMap() {
         });
     } else {
         clearHeatmap();
+        clearMarkers();
     }
 }
+
+
 
 //Trying to salvage what I can
 //TODO fix these functions, make sure they work

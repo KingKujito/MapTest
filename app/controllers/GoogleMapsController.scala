@@ -33,7 +33,7 @@ class GoogleMapsController @Inject()(
   // on an unbounded pool of daemon threads. See the chapter on connection handling for more info.
   implicit val xa: Aux[IO, Unit] = Transactor.fromDriverManager[IO](
     "org.postgresql.Driver",                        // driver classname
-    "jdbc:postgresql://localhost:5432/postgistest",    // connect URL (driver-specific)
+    "jdbc:postgresql://localhost:5432/postgistest2",    // connect URL (driver-specific), postgistest for data quantity, postgistest2 for data quality
     "postgres",                                       // user
     "lunatech"                                       // password
   )

@@ -79,7 +79,24 @@
         <script>getCoords();</script>
     </form>
 
+    <script src="https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/markerclusterer.js"></script>
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAuNX3q4tleOgFYfculRieQCZ4mVhbH0oA&callback=initMap&libraries=visualization"> </script>
+</div>
+
+
+<!--MODAL-->
+<div id="my-modal" class="w3-modal">
+    <div class="w3-modal-content w3-animate-zoom w3-card-4">
+        <header class="w3-container">
+        <span onclick="document.getElementById('my-modal').style.display='none';"
+              class="w3-button w3-display-topright">&times;</span>
+            <h2>Loading facility info for <span id="my-modal-facility"></span></h2>
+            <hr>
+        </header>
+        <div class="w3-container">
+            <p>Not actually loading anything...</p>
+        </div>
+    </div>
 </div>
 
 }

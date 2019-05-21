@@ -82,7 +82,7 @@ package object util {
   def getFacilitiesWithinBounds (north: Float, south: Float, east: Float, west: Float, limit: Option[Int] = None)
                                 (implicit xa: Aux[IO, Unit]): List[Facility] = {
     (
-      sql"SELECT * from facility WHERE (longitude BETWEEN $south AND $north) AND (latitude BETWEEN $west AND $east) "++
+      sql"SELECT * from facility WHERE (longitude BETWEEN ${south-1} AND ${north+1}) AND (latitude BETWEEN ${west-1} AND ${east+1}) "++
         (if(limit.isDefined) fr"LIMIT ${limit.get}" else fr"")
     ).query[Facility].to[List].transact(xa).unsafeRunSync
   }
