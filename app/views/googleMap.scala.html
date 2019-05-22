@@ -1,7 +1,8 @@
 @import scala.collection.immutable
 @import models.Facility
+@import models.Defaults
 
-@(lastLat : Float = 0, lastLon : Float = 0, lastZoom : Float = 1, myLocation: Option[(scala.Float,scala.Float)], points : immutable.List[(Facility)] = immutable.List.empty)
+@(lastLat : Option[scala.Float], lastLon : Option[scala.Float], lastZoom : Float, myLocation: Option[(scala.Float,scala.Float)], foundIPLocation : Boolean = false)
 
 @main("MapTest") {
 <h1>Test the map!</h1>
@@ -9,81 +10,56 @@
 <div>
     <div id="map"></div>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <script>
+        window.findFacilities = false;
+
         @if(myLocation.isDefined){
             @Html(s"""
+              window.findFacilities = true;
               var myX       = ${myLocation.get._2};
               var myY       = ${myLocation.get._1};
               """)
         }
 
-        var lastLon   = @lastLon;
-        var lastLat   = @lastLat;
-        var lastZoom  = @lastZoom;
+        //These are used to center the map around a specified position on initialization. If no location has been
+        //specified or retrieved, the map will try to center around the user's IP position.
+        var lastLon        = @lastLon.getOrElse(0);
+        var lastLat        = @lastLat.getOrElse(0);
+        var lastZoom       = @lastZoom;
+        var defaultLimit   = @Defaults.limit;
+        var defaultRadius  = @Defaults.radius;
 
-        function addMarkers(map) {
-        //use
-        //icon: {url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png", scaledSize: new google.maps.Size(20, 20)}
-        //for different marker icons
-        //see https://stackoverflow.com/questions/15096461/resize-google-maps-marker-icon-image
-
-            var infowindow = new google.maps.InfoWindow({
-                      content: 'content loading...'
-                    });
-
-            var markers = [
-            @Html(points.map{facility =>
-                s"""
-                    new google.maps.Marker({
-                        position: {lat: ${facility.latitude}, lng: ${facility.longitude}},
-                        map: map,
-                        icon: {
-                        url: "https://www.google.com/maps/vt/icon/name=assets/icons/poi/tactile/pinlet_shadow-2-medium.png,assets/icons/poi/tactile/pinlet_outline_v2-2-medium.png,assets/icons/poi/tactile/pinlet-2-medium.png,assets/icons/poi/quantum/pinlet/golf_pinlet-2-medium.png&highlight=ff000000,ffffff,db4437,ffffff&color=ff000000?scale=2",
-                            scaledSize: new google.maps.Size(23, 32)},
-                        title: '${facility.name}'
-                    })
-                    """
-             }.mkString(","))
-             ];
-
-             markers.forEach(function(marker) {
-              marker.addListener('click', function() {
-                      infowindow.setContent('<span class="info-window">'+marker.getTitle()+'</span>');
-                      infowindow.open(map, marker);
-                    });
-            });
-
-
-            @if(myLocation.isDefined){
-                @Html("""
-                  var myPositionMarker = new google.maps.Marker({
-                    position: {lat: myY, lng: myX},
-                    map: map,
-                    icon: {url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png", scaledSize: new google.maps.Size(50, 50)},
-                    draggable:true,
-                    title:"Find Courses!"
-                    });
-
-                    myPositionMarker.addListener('click', function() {
-                      infowindow.setContent('<button onclick="getPoints();">Find Courses!</button>');
-                      infowindow.open(map, myPositionMarker);
-                    });
-
-                  myPos = myPositionMarker;
-                  """)
-            }
-        }
     </script>
-    <script src="/assets/javascripts/googlemap.js"></script>
+    @* Remove the 'New' in 'googlemapNew' for the other version. Uncomment the radius inputs when you do. *@
+    <script src="/assets/javascripts/googlemapNew.js"></script>
     <script src="/assets/javascripts/geolocation.js"></script>
 
-    <form action="#" method="GET">
+    <!--If no position has been specified, center the map around the user's IP position.-->
+    @if(!foundIPLocation && lastLon.isEmpty && lastLat.isEmpty){
+        <script>CenterMyPosition(true);</script>
+    }
+
+
+    <button onclick="toggleHeatmap();" type="button">Toggle Heatmap</button>
+
+
+    <p>
+        <label for="teetime">Teetime:</label>
+        <input type="text" id="teetime" readonly style="border:0; color:white; background-color:black;">
+        <input type="hidden" id="time-low">
+        <input type="hidden" id="time-high">
+    </p>
+    <div id="slider-range"></div>
+    <hr>
+
+    <!--form action="#" method="GET"-->
         <p>Search by address/location</p>
-        <input name="address" placeholder="Golfstreet 777, USA" required>
-        <p>Max distance in kilometers</p>
-        <input name="radius"  type="number" value="15" required><br><br>
-        <input name="submit"  type="submit" value="Search">
-    </form>
+        <input name="address" placeholder="Golfstreet 777, USA" id="address" required>
+        <!--p>Max distance in kilometers</p>
+        <input name="radius"  type="number" id="georadius" value="15" required><br><br-->
+        <input name="submit"  type="submit" id="geocoder" value="Search">
+    <!--/form-->
     <hr>
     <div id="allow-geo">
         <p>Allow us to search for facilities near you.</p>
@@ -92,18 +68,35 @@
 
     <form action="#" method="GET" id="geo-form">
         <p>Search by your current location</p>
-        <p>Max distance in kilometers</p>
-        <input name="radius"     type="number" value="15"    required><br><br>
+        <!--p>Max distance in kilometers</p>
+        <input name="radius"     type="number" value="15"    required><br><br-->
         <input id="geolatitude"  name="geolat" type="hidden" required>
         <input id="geolongitude" name="geolon" type="hidden" required>
         <input id="last-lat"     name="lat"    type="hidden">
         <input id="last-lon"     name="lon"    type="hidden">
-        <input                   name="zoom"   type="hidden" value="7">
+        <input                   name="zoom"   type="hidden" value="13">
         <input name="submit"  type="submit" value="Search">
         <script>getCoords();</script>
     </form>
 
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAuNX3q4tleOgFYfculRieQCZ4mVhbH0oA&callback=initMap"> </script>
+    <script src="https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/markerclusterer.js"></script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAuNX3q4tleOgFYfculRieQCZ4mVhbH0oA&callback=initMap&libraries=visualization"> </script>
+</div>
+
+
+<!--MODAL-->
+<div id="my-modal" class="w3-modal">
+    <div class="w3-modal-content w3-animate-zoom w3-card-4">
+        <header class="w3-container">
+        <span onclick="document.getElementById('my-modal').style.display='none';"
+              class="w3-button w3-display-topright">&times;</span>
+            <h2>Loading facility info for <span id="my-modal-facility"></span></h2>
+            <hr>
+        </header>
+        <div class="w3-container">
+            <p>Not actually loading anything...</p>
+        </div>
+    </div>
 </div>
 
 }
