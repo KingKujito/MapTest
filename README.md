@@ -116,8 +116,3 @@ Note that the longitude and latitude are switched up on purpose, since the code 
 - http://localhost:9000/
 - http://localhost:9000/googlemap
 - http://localhost:9000/googlemap?lat=20&lon=20
-- http://localhost:9000/googlemap?geolat=53.53894924055799&geolon=-2.3029403687500007&radius=150&lat=53.053048175708824&lon=-0.12764740000000163&zoom=6
-
-### TODO
-- Create abstractions to allow for this to work with any data provided by any source.
-- Make this embeddable and usable for any website.
