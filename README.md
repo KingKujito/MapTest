@@ -106,6 +106,7 @@ VALUES
 		
 SELECT * FROM facility;
 ```
+Note that the longitude and latitude are switched up on purpose, since the code has been written to take this mistake into account. It is on my TODO list to change this.
 
 ### Setup
 - Change the info in GoogleMapsController.xa to comply with your local db.
